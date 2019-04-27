@@ -19,6 +19,12 @@ See sp_uncase_en_ja_40000.ipynb jupyter notebook in sp_uncase_en_ja_40000 direct
 
 ### Usage
 
+Make sure that sentencepiece library is installed before using this script.
+
+```bash
+pip install sentencepiece
+```
+
 ```python
 from tokenization.sp_uncase_en_ja_40000 import FullTokenizer
 tokenizer = FullTokenizer()

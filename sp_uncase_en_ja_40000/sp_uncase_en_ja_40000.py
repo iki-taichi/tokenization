@@ -43,7 +43,7 @@ class FullTokenizer(object):
         
         return vocab, inv_vocab
     
-    def __init__(self, model_file=None, vocab_file=None, **kwargs):
+    def __init__(self, model_file=None, vocab_file=None, mapping=None, **kwargs):
         """
         initializes a tokenizer
         args:
@@ -62,6 +62,9 @@ class FullTokenizer(object):
         self.tokenizer = SentencePieceTokenizer(model_file)
         self.vocab, self.inv_vocab = self.load_dict(vocab_file)
         self.unk_id = self.vocab[self.TOKEN_UNK]
+        
+        if mapping is not None:
+            self.rewrite_dict(mapping)
     
     def tokenize(self, text, as_ids=False, remove_spaces=False):
         tokens = self.tokenizer.tokenize(text)
@@ -80,6 +83,30 @@ class FullTokenizer(object):
     def convert_ids_to_tokens(self, ids):
         return [self.inv_vocab.get(_, self.TOKEN_UNK)for _ in ids]
     
+    def rewrite_dict(self, mapping):
+        """
+        Rewrites vocab and inv_vocab dict accroding to mapping.
+        This don't affect the sentencepeice model.
+        For example, after you rewriting 'unused_0' to '[CLS]',
+        convert_tokens_to_ids('[CLS]') will return [3] (the id that unsed_0 was mapped)
+        but tokenize('[CLS]abc[$]') will not return ['[CLS]', ...].
+        args:
+            mapping: a dict {'before_rewrite_vocab':'after_vocab', ...}
+        """
+        cannot_change = ['<pad>', '<unk>', '\u2581']
+        
+        for k, v in mapping.items():
+            if k in cannot_change:
+                raise ValueError('vocab %s cannot be changed.'%(k))
+            if not (k in self.vocab):
+                raise ValueError('vocab %s does not exists in current dict.'%(k))
+            if v in self.vocab:
+                raise ValueError('vocab %s already exists.'%(v))
+        
+        for k, v in mapping.items():
+            i = self.vocab[v] = self.vocab.pop(k)
+            self.inv_vocab[i] = v
+            
     def summary(self):
         print('path_prefix=%s'%(self.path_prefix))
         print('num_of_vocab=%d'%(len(self.vocab)))
